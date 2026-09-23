@@ -1,0 +1,4 @@
+ansible/my-key.pem*
+terraform/.terraform/
+terraform/*.tfstate*
+terraform/.terraform.lock.hcl

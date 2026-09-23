@@ -1,0 +1,35 @@
+name: DevOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Build Docker Image
+      run: docker build -t devops-lab-app ./app
+
+    # runner has no cluster by default; spin up a throwaway kind cluster to deploy into
+    - name: Create Kubernetes cluster (kind)
+      uses: helm/kind-action@v1
+
+    - name: Load image into cluster
+      run: kind load docker-image devops-lab-app --name chart-testing
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/deployment.yml
+        kubectl apply -f k8s/service.yml
+
+    - name: Verify rollout
+      run: |
+        kubectl rollout status deployment/devops-app --timeout=120s
+        kubectl get pods,svc -o wide
+        kubectl port-forward svc/devops-service 8080:80 &
+        sleep 3 && curl -s localhost:8080 | grep "DevOps CI/CD Virtual Lab"
